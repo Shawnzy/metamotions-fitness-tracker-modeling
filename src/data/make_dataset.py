@@ -27,7 +27,6 @@ len(files)
 data_path = "../../data/raw/MetaMotion/"
 f = files[0]
 
-
 participant = f.split("-")[0].replace(data_path, "")
 label = f.split("-")[1]
 category = f.split("-")[2].split("_")[0]
@@ -75,8 +74,6 @@ for f in files:
 # Working with datetimes
 # --------------------------------------------------------------
 
-pd.to_datetime(df["epoch (ms)"], unit="ms")
-
 acc_df.index = pd.to_datetime(acc_df["epoch (ms)"], unit="ms")
 gyr_df.index = pd.to_datetime(gyr_df["epoch (ms)"], unit="ms")
 
@@ -87,6 +84,7 @@ del acc_df["elapsed (s)"]
 del gyr_df["epoch (ms)"]
 del gyr_df["time (01:00)"]
 del gyr_df["elapsed (s)"]
+
 # --------------------------------------------------------------
 # Turn into function
 # --------------------------------------------------------------
@@ -151,12 +149,11 @@ data_merged.columns = [
     "gyr_x",
     "gyr_y",
     "gyr_z",
+    "participant",
     "label",
     "category",
-    "participant",
     "set",
 ]
-
 
 # --------------------------------------------------------------
 # Resample data (frequency conversion)
@@ -177,9 +174,9 @@ sampling = {
     "participant": "last",
     "set": "last",
 }
-data_merged[:1000].resample(rule="200ms").apply(sampling)
 
 days = [g for n, g in data_merged.groupby(pd.Grouper(freq="D"))]
+
 data_resampled = pd.concat(
     [df.resample(rule="200ms").apply(sampling).dropna() for df in days]
 )
