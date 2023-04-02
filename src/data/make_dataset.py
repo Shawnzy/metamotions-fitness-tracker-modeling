@@ -37,7 +37,6 @@ df["participant"] = participant
 df["label"] = label
 df["category"] = category
 
-
 # --------------------------------------------------------------
 # Read all files
 # --------------------------------------------------------------
@@ -68,7 +67,6 @@ for f in files:
         df["set"] = gyr_set
         gyr_set += 1
         gyr_df = pd.concat([gyr_df, df])
-
 
 # --------------------------------------------------------------
 # Working with datetimes
