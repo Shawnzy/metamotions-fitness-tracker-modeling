@@ -1,3 +1,4 @@
+from typing import List
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,7 +26,9 @@ df[outlier_columns[:3] + ["label"]].boxplot(by="label", figsize=(20, 10), layout
 df[outlier_columns[3:] + ["label"]].boxplot(by="label", figsize=(20, 10), layout=(1, 3))
 
 
-def plot_binary_outliers(dataset, col, outlier_col, reset_index):
+def plot_binary_outliers(
+    dataset: pd.DataFrame, col: str, outlier_col: str, reset_index: bool
+):
     """Plot outliers in case of a binary outlier score. Here, the col specifies the real data
     column and outlier_col the columns with a binary value (outlier or not).
 
@@ -69,6 +72,7 @@ def plot_binary_outliers(dataset, col, outlier_col, reset_index):
         fancybox=True,
         shadow=True,
     )
+
     plt.show()
 
 
@@ -78,18 +82,19 @@ def plot_binary_outliers(dataset, col, outlier_col, reset_index):
 
 
 # Insert IQR function
-def mark_outliers_iqr(dataset, col):
+def mark_outliers_iqr(dataset: pd.DataFrame, col: str) -> pd.DataFrame:
     """Function to mark values as outliers using the IQR method.
 
     Args:
         dataset (pd.DataFrame): The dataset
-        col (string): The column you want apply outlier detection to
+        col (str): The column you want apply outlier detection to
 
     Returns:
         pd.DataFrame: The original dataframe with an extra boolean column
         indicating whether the value is an outlier or not.
     """
 
+    # Copy dataset
     dataset = dataset.copy()
 
     Q1 = dataset[col].quantile(0.25)
@@ -134,7 +139,9 @@ df[outlier_columns[3:] + ["label"]].plot.hist(
 
 
 # Insert Chauvenet's function
-def mark_outliers_chauvenet(dataset, col, C=2):
+def mark_outliers_chauvenet(
+    dataset: pd.DataFrame, col: str, C: int = 2
+) -> pd.DataFrame:
     """Finds outliers in the specified column of datatable and adds a binary column with
     the same name extended with '_outlier' that expresses the result per data point.
 
@@ -151,7 +158,9 @@ def mark_outliers_chauvenet(dataset, col, C=2):
         indicating whether the value is an outlier or not.
     """
 
+    # Copy dataset
     dataset = dataset.copy()
+
     # Compute the mean and standard deviation.
     mean = dataset[col].mean()
     std = dataset[col].std()
@@ -179,7 +188,7 @@ def mark_outliers_chauvenet(dataset, col, C=2):
     return dataset
 
 
-# Loop over all columns
+# Loop over all outlier columns plotting the outliers
 for col in outlier_columns:
     dataset = mark_outliers_chauvenet(df, col)
     plot_binary_outliers(
@@ -192,7 +201,9 @@ for col in outlier_columns:
 
 
 # Insert LOF function
-def mark_outliers_lof(dataset, columns, n=20):
+def mark_outliers_lof(
+    dataset: pd.DataFrame, columns: List[str], n: int = 20
+) -> pd.DataFrame:
     """Mark values as outliers using LOF
 
     Args:
@@ -205,14 +216,18 @@ def mark_outliers_lof(dataset, columns, n=20):
         indicating whether the value is an outlier or not.
     """
 
+    # Copy dataset
     dataset = dataset.copy()
 
+    # Use LOF to detect outliers
     lof = LocalOutlierFactor(n_neighbors=n)
     data = dataset[columns]
     outliers = lof.fit_predict(data)
     X_scores = lof.negative_outlier_factor_
 
+    # Label all outliers
     dataset["outlier_lof"] = outliers == -1
+
     return dataset, outliers, X_scores
 
 

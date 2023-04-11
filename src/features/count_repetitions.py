@@ -81,13 +81,30 @@ LowPass.low_pass_filter(
 # --------------------------------------------------------------
 
 
-def count_reps(dataset, cutoff=0.4, order=10, column="acc_r"):
+def count_reps(
+    dataset: pd.DataFrame, cutoff: float = 0.4, order: int = 10, column: str = "acc_r"
+) -> int:
+    """Counts the number of reps in a dataset.
+
+    Args:
+        dataset (pd.DataFrame): A dataset containing the acc_r column.
+        cutoff (float, optional): The cutoff frequency for the low pass filter. Defaults to 0.4.
+        order (int, optional): The order of the low pass filter. Defaults to 10.
+        column (str, optional): The column to count the reps for. Defaults to "acc_r".
+
+    Returns:
+        int: The number of reps in the dataset.
+    """
+    # Use a low pass filter to remove noise
     data = LowPass.low_pass_filter(
         dataset, col=column, sampling_frequency=fs, cutoff_frequency=cutoff, order=order
     )
+
+    # Find indexes of local maximas to find peaks
     indexes = argrelextrema(data[column + "_lowpass"].values, np.greater)
     peaks = data.iloc[indexes]
 
+    # Plot data to see reps
     fig, ax = plt.subplots()
     plt.plot(dataset[f"{column}_lowpass"])
     plt.plot(peaks[f"{column}_lowpass"], "o", color="red")
@@ -100,6 +117,7 @@ def count_reps(dataset, cutoff=0.4, order=10, column="acc_r"):
     return len(peaks)
 
 
+# Count reps for each excercise
 count_reps(bench_set, cutoff=0.4)
 count_reps(squat_set, cutoff=0.35)
 count_reps(row_set, cutoff=0.6, column="gyr_x")
@@ -110,10 +128,14 @@ count_reps(dead_set, cutoff=0.4)
 # Create benchmark dataframe
 # --------------------------------------------------------------
 
+# Create dataframe with reps for each set
 df["reps"] = df["category"].apply(lambda x: 5 if x == "heavy" else 10)
 rep_df = df.groupby(["label", "category", "set"])["reps"].max().reset_index()
+
+# Initialize new column for predicted reps
 rep_df["reps_pred"] = 0
 
+# Predict reps for each set using acc_r feature
 for s in df["set"].unique():
     subset = df[df["set"] == s]
 

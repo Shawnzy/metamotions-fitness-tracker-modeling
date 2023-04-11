@@ -22,13 +22,11 @@ plt.rcParams["figure.dpi"] = 100
 plt.rcParams["lines.linewidth"] = 2
 
 # --------------------------------------------------------------
-# Dealing with missing values (imputation)
+# Dealing with missing values (interpolation)
 # --------------------------------------------------------------
 
 for col in predictor_columns:
     df[col].interpolate(method="linear", inplace=True)
-
-df.info()
 
 # --------------------------------------------------------------
 # Calculating set duration
@@ -37,7 +35,6 @@ df.info()
 df[df["set"] == 50]["acc_y"].plot()
 
 duration = df[df["set"] == 1].index[-1] - df[df["set"] == 1].index[0]
-duration.seconds
 
 for s in df["set"].unique():
     start = df[df["set"] == 1].index[0]

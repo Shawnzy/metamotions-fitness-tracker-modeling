@@ -1,113 +1,40 @@
 import pandas as pd
 from glob import glob
 
-# --------------------------------------------------------------
-# Read single CSV file
-# --------------------------------------------------------------
-
-single_file_acc = pd.read_csv(
-    "../../data/raw/MetaMotion/A-bench-heavy_MetaWear_2019-01-14T14.22.49.165_C42732BE255C_Accelerometer_12.500Hz_1.4.4.csv"
-)
-
-single_file_gyr = pd.read_csv(
-    "../../data/raw/MetaMotion/A-bench-heavy_MetaWear_2019-01-14T14.22.49.165_C42732BE255C_Gyroscope_25.000Hz_1.4.4.csv"
-)
 
 # --------------------------------------------------------------
-# List all data in data/raw/MetaMotion
+# Load raw data and create accelerometer and gyroscope dataframes
 # --------------------------------------------------------------
 
-files = glob("../../data/raw/MetaMotion/*.csv")
-len(files)
-
-# --------------------------------------------------------------
-# Extract features from filename
-# --------------------------------------------------------------
-
+# Get path and list of filenames
 data_path = "../../data/raw/MetaMotion/"
-f = files[0]
-
-participant = f.split("-")[0].replace(data_path, "")
-label = f.split("-")[1]
-category = f.split("-")[2].split("_")[0]
-
-df = pd.read_csv(f)
-
-df["participant"] = participant
-df["label"] = label
-df["category"] = category
-
-# --------------------------------------------------------------
-# Read all files
-# --------------------------------------------------------------
-
-acc_df = pd.DataFrame()
-gyr_df = pd.DataFrame()
-
-acc_set = 1
-gyr_set = 1
-
-for f in files:
-    participant = f.split("-")[0].replace(data_path, "")
-    label = f.split("-")[1]
-    category = f.split("-")[2].split("_")[0].rstrip("123")
-
-    df = pd.read_csv(f)
-
-    df["participant"] = participant
-    df["label"] = label
-    df["category"] = category
-
-    if "Accelerometer" in f:
-        df["set"] = acc_set
-        acc_set += 1
-        acc_df = pd.concat([acc_df, df])
-
-    if "Gyroscope" in f:
-        df["set"] = gyr_set
-        gyr_set += 1
-        gyr_df = pd.concat([gyr_df, df])
-
-# --------------------------------------------------------------
-# Working with datetimes
-# --------------------------------------------------------------
-
-acc_df.index = pd.to_datetime(acc_df["epoch (ms)"], unit="ms")
-gyr_df.index = pd.to_datetime(gyr_df["epoch (ms)"], unit="ms")
-
-del acc_df["epoch (ms)"]
-del acc_df["time (01:00)"]
-del acc_df["elapsed (s)"]
-
-del gyr_df["epoch (ms)"]
-del gyr_df["time (01:00)"]
-del gyr_df["elapsed (s)"]
-
-# --------------------------------------------------------------
-# Turn into function
-# --------------------------------------------------------------
-
 files = glob("../../data/raw/MetaMotion/*.csv")
 
 
 def read_data_from_files(files):
+    # Create empty dataframes
     acc_df = pd.DataFrame()
     gyr_df = pd.DataFrame()
 
+    # Initialize set counter
     acc_set = 1
     gyr_set = 1
 
     for f in files:
+        # Extract features from filename
         participant = f.split("-")[0].replace(data_path, "")
         label = f.split("-")[1]
         category = f.split("-")[2].split("_")[0].rstrip("123")
 
+        # Open file and read data
         df = pd.read_csv(f)
 
+        # Create 3 new columns
         df["participant"] = participant
         df["label"] = label
         df["category"] = category
 
+        # Concatenate dataframes based on if it is accelerometer or gyroscope data
         if "Accelerometer" in f:
             df["set"] = acc_set
             acc_set += 1
@@ -118,9 +45,11 @@ def read_data_from_files(files):
             gyr_set += 1
             gyr_df = pd.concat([gyr_df, df])
 
+    # Convert "epoch (ms)" column to datetime and set it as index
     acc_df.index = pd.to_datetime(acc_df["epoch (ms)"], unit="ms")
     gyr_df.index = pd.to_datetime(gyr_df["epoch (ms)"], unit="ms")
 
+    # Delete unnecessary columns
     del acc_df["epoch (ms)"]
     del acc_df["time (01:00)"]
     del acc_df["elapsed (s)"]
@@ -129,13 +58,14 @@ def read_data_from_files(files):
     del gyr_df["time (01:00)"]
     del gyr_df["elapsed (s)"]
 
+    # Return accelerometer and gyroscope dataframes
     return acc_df, gyr_df
 
 
 acc_df, gyr_df = read_data_from_files(files)
 
 # --------------------------------------------------------------
-# Merging datasets
+# Merge the 2 datasets
 # --------------------------------------------------------------
 
 data_merged = pd.concat([acc_df.iloc[:, :3], gyr_df], axis=1)
@@ -160,6 +90,7 @@ data_merged.columns = [
 # Accelerometer:    12.500HZ
 # Gyroscope:        25.000Hz
 
+# List of functions to apply to each column
 sampling = {
     "acc_x": "mean",
     "acc_y": "mean",
@@ -173,14 +104,16 @@ sampling = {
     "set": "last",
 }
 
+# Group data by day
 days = [g for n, g in data_merged.groupby(pd.Grouper(freq="D"))]
 
+# Resample data and drop NaN values for each day
 data_resampled = pd.concat(
     [df.resample(rule="200ms").apply(sampling).dropna() for df in days]
 )
 
+# Format "set" column
 data_resampled["set"] = data_resampled["set"].astype("int")
-data_resampled.info()
 
 # --------------------------------------------------------------
 # Export dataset
